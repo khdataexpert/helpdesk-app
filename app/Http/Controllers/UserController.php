@@ -57,10 +57,10 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
-
+//-------------------------------aa---------------------------
         $role = Role::findByName($validated['role'], 'api');
         $user->assignRole($role);
-        
+
         return response()->json([
             'status' => true,
             'message' => __('text.user_created_success'),
