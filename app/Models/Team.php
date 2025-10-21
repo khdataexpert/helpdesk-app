@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Team extends Model
 {
-    protected $fillable = ['name', 'Specialization', 'user_id'];
+    protected $fillable = ['name', 'Specialization', 'user_id','company_id'];
     public function users()
     {
         return $this->belongsToMany(User::class);
@@ -22,5 +22,9 @@ class Team extends Model
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

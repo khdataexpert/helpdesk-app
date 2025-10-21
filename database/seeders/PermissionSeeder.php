@@ -13,7 +13,7 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-       $permissions = [
+        $permissions = [
             'view users',
             'add users',
             'edit users',
@@ -26,7 +26,7 @@ class PermissionSeeder extends Seeder
             'delete tickets',
             'view projects',
             'view own projects',
-            'add projects', 
+            'add projects',
             'edit projects',
             'delete projects',
             'assign projects',
@@ -51,8 +51,20 @@ class PermissionSeeder extends Seeder
             'delete Roles',
         ];
 
+
         foreach ($permissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
+
+            // For API guard
+            Permission::firstOrCreate([
+                'name' => $perm,
+                'guard_name' => 'api',
+            ]);
+
+            // For WEB guard
+            Permission::firstOrCreate([
+                'name' => $perm,
+                'guard_name' => 'web',
+            ]);
         }
     }
 }

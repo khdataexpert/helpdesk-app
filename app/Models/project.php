@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class project extends Model
 {
-      protected $fillable = ['name', 'description', 'client_id', 'team_id', 'status','assigned_to'];
+    protected $fillable = ['name', 'description', 'client_id', 'team_id', 'status', 'assigned_to', 'company_id'];
 
     public function client()
     {
@@ -22,8 +22,12 @@ class project extends Model
     {
         return $this->hasMany(Ticket::class);
     }
-        public function assignedUser()
+    public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

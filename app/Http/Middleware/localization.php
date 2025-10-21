@@ -17,11 +17,15 @@ class localization
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->session()->has('locale')) {
-            App::setLocale($request->session()->get('locale'));
-        } else {
-            App::setLocale(config('app.locale')); // استخدم القيمة الافتراضية من config/app.php
+        // جرب قراءة اللغة من Header أو من query string
+        $locale = $request->header('Accept-Language', $request->get('lang', config('app.locale')));
+
+        if (!in_array($locale, ['en', 'ar'])) {
+            $locale = config('app.locale');
         }
+
+        App::setLocale($locale);
+
         return $next($request);
     }
 }

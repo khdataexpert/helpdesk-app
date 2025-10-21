@@ -4,60 +4,76 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use App\Http\Resources\RoleResource;
 use Spatie\Permission\Models\Permission;
+use App\Http\Resources\PermissionResource;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        if (auth()->user()->can('view Roles')) { {
-                $roles = Role::with('permissions')->get();
-                return view('Dashboard.Roles.index', compact('roles'));
-            }
-            abort(403);
-        }
+        $roles = Role::with('permissions')->get();
+        return RoleResource::collection($roles);
     }
 
-    public function create()
+    public function show($id)
     {
-        if (!auth()->user()->can('add Roles')) abort(403);
-        $permissions = Permission::all();
-        return view('Dashboard.Roles.create', compact('permissions'));
+        $role = Role::with('permissions')->findOrFail($id);
+        return new RoleResource($role);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|unique:roles,name',
-            'permissions' => 'array|required'
+        $validated = $request->validate([
+            'name' => 'required|string|unique:roles,name',
+            'permissions' => 'required|array',
+            'permissions.*' => 'exists:permissions,name',
         ]);
 
-        $role = Role::create(['name' => $request->name]);
-        $role->syncPermissions($request->permissions);
+        $role = Role::create([
+            'name' => $validated['name'],
+            'guard_name' => 'api',
+        ]);
+        $role->syncPermissions($validated['permissions']);
+        
 
-        return redirect()->route('roles.index')->with('success', 'Role created successfully.');
+        return (new RoleResource($role->load('permissions')))
+            ->additional([
+                'status' => true,
+                'message' => __('text.save_role_btn'),
+            ])
+            ->response()
+            ->setStatusCode(201);
     }
-    public function edit(Role $role)
+
+    public function update(Request $request, $id)
     {
-        $permissions = Permission::all();
-        $role->load('permissions');
-        return view('Dashboard.Roles.edit', compact('role', 'permissions'));
-    }
-    public function update(Request $request, Role $role)
-    {
-        $request->validate([
-            'name' => 'required|unique:roles,name,' . $role->id,
-            'permissions' => 'array|required'
+        $role = Role::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|unique:roles,name,' . $role->id,
+            'permissions' => 'required|array',
+            'permissions.*' => 'exists:permissions,name',
         ]);
 
-        $role->update(['name' => $request->name]);
-        $role->syncPermissions($request->permissions);
+        $role->update(['name' => $validated['name']]);
+        $role->syncPermissions($validated['permissions']);
 
-        return redirect()->route('roles.index')->with('success', 'Role updated successfully.');
+        return (new RoleResource($role->load('permissions')))
+            ->additional([
+                'status' => true,
+                'message' => __('text.update_role_btn'),
+            ]);
     }
-    public function destroy(Role $role)
+
+    public function destroy($id)
     {
+        $role = Role::findOrFail($id);
         $role->delete();
-        return redirect()->route('roles.index')->with('success', 'Role deleted successfully.');
+
+        return response()->json([
+            'status' => true,
+            'message' => __('text.permission_delete Roles'),
+        ]);
     }
 }

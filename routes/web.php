@@ -21,7 +21,7 @@ Route::get('/', function () {
 });
 Route::get('lang/{locale}', [LanguageController::class, 'change'])->name('lang.switch');
 Route::post('/login', [authcontroller::class, 'login'])->name('login')->middleware('guest');
-Route::prefix('dashboard')->middleware('auth')->group(function () {
+Route::prefix('dashboard')->group(function () {
   Route::get('/', [dashboardcontroller::class, 'index'])->name('dashboard');
   Route::resource('roles', RoleController::class);
   Route::resource('users', UserController::class);

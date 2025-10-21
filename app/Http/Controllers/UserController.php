@@ -2,51 +2,46 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Validation\Rule;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
     /**
-     * عرض قائمة المستخدمين (READ)
+     * عرض قائمة المستخدمين (GET /api/users)
      */
     public function index()
     {
+        $users = User::with(['roles', 'permissions', 'company'])->paginate(10);
 
-    if (auth()->user()->can('view users')||auth()->user()->can('add users')) {
-        $users = User::with('roles')->paginate(10);
-        return view('Dashboard.Users.index', compact('users'));
-    }
-    abort(403, 'Unauthorized action.');
+        return response()->json([
+            'status' => true,
+            'message' => __('text.users_management'),
+            'data' => UserResource::collection($users),
+        ]);
     }
 
     /**
-     * عرض نموذج إنشاء مستخدم جديد (CREATE)
+     * عرض بيانات مستخدم واحد (GET /api/users/{id})
      */
-    public function create()
-    {
-        if(auth()->user()->can('add users')){
-            $roles = Role::pluck('name', 'name');
-            return view('Dashboard.Users.create', compact('roles'));
-        }
-        abort(403, 'Unauthorized action.');
-    }
     public function show(User $user)
     {
-        if (auth()->user()->can('view users')) {
-            $user->load('roles.permissions');
-           return view('Dashboard.Users.show', compact('user'));
-        }
-        abort(403, 'Unauthorized action.');
+        $user->load(['roles', 'permissions', 'company']);
+
+        return response()->json([
+            'status' => true,
+            'data' => new UserResource($user),
+        ]);
     }
 
     /**
-     * تخزين مستخدم جديد (CREATE - Store)
+     * إنشاء مستخدم جديد (POST /api/users)
      */
     public function store(Request $request)
     {
@@ -63,28 +58,18 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // تعيين الدور
-        $user->assignRole($validated['role']);
-
-        // 💡 استخدام مفتاح ترجمة
-        return redirect()->route('users.index')->with('success', __('text.user_created_success'));
-    }
-
-
-    /**
-     * عرض نموذج تعديل المستخدم (EDIT)
-     */
-    public function edit(User $user)
-    {
-        if (auth()->user()->can('edit users')) {
-            $roles = Role::pluck('name', 'name');
-            return view('Dashboard.Users.edit', compact('user', 'roles'));
-        }
-        abort(403, 'Unauthorized action.');
+        $role = Role::findByName($validated['role'], 'api');
+        $user->assignRole($role);
+        
+        return response()->json([
+            'status' => true,
+            'message' => __('text.user_created_success'),
+            'data' => new UserResource($user),
+        ], 201);
     }
 
     /**
-     * تحديث بيانات المستخدم (UPDATE)
+     * تحديث بيانات المستخدم (PUT /api/users/{id})
      */
     public function update(Request $request, User $user)
     {
@@ -101,43 +86,63 @@ class UserController extends Controller
             'password' => $request->password ? Hash::make($request->password) : $user->password,
         ]);
 
-        // مزامنة الدور (يزيل القديم ويعين الجديد)
-        $user->syncRoles($validated['role']);
+        $role = Role::findByName($validated['role'], 'api');
+        $user->syncRoles($role);
 
-        // 💡 استخدام مفتاح ترجمة
-        return redirect()->route('users.index')->with('success', __('text.user_updated_success'));
+        return response()->json([
+            'status' => true,
+            'message' => __('text.user_updated_success'),
+            'data' => new UserResource($user),
+        ]);
     }
+
+    /**
+     * حذف المستخدم (DELETE /api/users/{id})
+     */
+    public function destroy(User $user)
+    {
+        if (auth()->id() === $user->id) {
+            return response()->json([
+                'status' => false,
+                'message' => __('text.cannot_delete_self'),
+            ], 403);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => __('text.user_deleted_success'),
+        ]);
+    }
+
+    /**
+     * عرض صلاحيات المستخدم (GET /api/users/{id}/permissions)
+     */
     public function permissions($id)
     {
-        if(auth()->user()->can('manage permissions')){
-            $user = User::findOrFail($id);
-            $permissions = Permission::all();
-    
-            return view('Dashboard.users.permissions', compact('user', 'permissions'));
-        }
-        abort(403, 'Unauthorized action.');
+        $user = User::findOrFail($id);
+        $permissions = Permission::all();
+
+        return response()->json([
+            'status' => true,
+            'user' => new UserResource($user),
+            'permissions' => $permissions->pluck('name'),
+        ]);
     }
 
+    /**
+     * تحديث صلاحيات المستخدم (PUT /api/users/{id}/permissions)
+     */
     public function updatePermissions(Request $request, $id)
     {
         $user = User::findOrFail($id);
         $user->syncPermissions($request->input('permissions', []));
 
-        return redirect()->route('users.index')->with('success', __('text.permissions_updated_successfully'));
-    }
-    /**
-     * حذف المستخدم (DELETE)
-     */
-    public function destroy(User $user)
-    {
-        // 💡 تصحيح الطريقة: يجب استخدام auth()->user()->id
-        if (auth()->user()->id === $user->id) {
-            // 💡 استخدام مفتاح ترجمة
-            return redirect()->route('users.index')->with('error', __('text.cannot_delete_self'));
-        }
-
-        $user->delete();
-        // 💡 استخدام مفتاح ترجمة
-        return redirect()->route('users.index')->with('success', __('text.user_deleted_success'));
+        return response()->json([
+            'status' => true,
+            'message' => __('text.permissions_updated_successfully'),
+            'data' => new UserResource($user),
+        ]);
     }
 }

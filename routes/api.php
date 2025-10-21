@@ -1,0 +1,56 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\TeamController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ContractController;
+use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PermissionController;
+
+// ========== Authentication ==========
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+
+// ========== Language ==========
+Route::get('/lang/{locale}', [LanguageController::class, 'change']); // optional لو عايز تعملها API route
+
+// ========== Dashboard ==========
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // ========== Users ==========
+    Route::apiResource('users', UserController::class);
+    Route::get('users/{id}/permissions', [UserController::class, 'permissions']);
+    Route::put('users/{id}/permissions', [UserController::class, 'updatePermissions']);
+
+    // ========== Teams ==========
+    Route::apiResource('teams', TeamController::class);
+    Route::get('teams/{team}/members', [TeamController::class, 'members']);
+    Route::put('teams/{team}/members', [TeamController::class, 'updateMembers']);
+
+    // ========== Projects ==========
+    Route::apiResource('projects', ProjectController::class);
+    Route::post('projects/{project}/assign', [ProjectController::class, 'assignToMe']);
+
+    // ========== Tickets ==========
+    Route::apiResource('tickets', TicketController::class);
+    Route::post('tickets/{ticket}/assign', [TicketController::class, 'assignToMe']);
+
+    // ========== Contracts ==========
+    Route::apiResource('contracts', ContractController::class);
+
+    // ========== Invoices ==========
+    Route::apiResource('invoices', InvoiceController::class);
+    //=========== Roles ==========
+    Route::apiResource('roles', RoleController::class);
+    //=========== Permissions ==========
+    Route::apiResource('permissions', PermissionController::class);
+});

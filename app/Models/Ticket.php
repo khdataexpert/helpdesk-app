@@ -7,12 +7,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Ticket extends Model
 {
-   
+
     use HasFactory;
 
     protected $fillable = [
-        'title', 'description', 'project_id', 'team_id', 'assigned_to',
-        'created_by', 'type', 'status', 'priority',
+        'title',
+        'description',
+        'project_id',
+        'team_id',
+        'assigned_to',
+        'created_by',
+        'type',
+        'status',
+        'priority',
+        'company_id',
     ];
 
     public function project()
@@ -33,5 +41,10 @@ class Ticket extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

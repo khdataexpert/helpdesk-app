@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('contracts', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('contract_number')->unique();
             $table->text('notes')->nullable();
 
