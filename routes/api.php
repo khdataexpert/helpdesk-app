@@ -13,6 +13,7 @@ use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\CompanyController;
 
 // ========== Authentication ==========
 Route::post('/login', [AuthController::class, 'login']);
@@ -49,6 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ========== Invoices ==========
     Route::apiResource('invoices', InvoiceController::class);
+    // ========== Companies ==========
+    Route::apiResource('companies', CompanyController::class);
     //=========== Roles ==========
     Route::apiResource('roles', RoleController::class);
     //=========== Permissions ==========
