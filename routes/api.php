@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('teams/{team}/members', [TeamController::class, 'members']);
     Route::put('teams/{team}/members', [TeamController::class, 'updateMembers']);
 
+
     // ========== Projects ==========
     Route::apiResource('projects', ProjectController::class);
     Route::post('projects/{project}/assign', [ProjectController::class, 'assignToMe']);

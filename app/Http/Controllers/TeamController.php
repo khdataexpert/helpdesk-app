@@ -5,80 +5,87 @@ namespace App\Http\Controllers;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Resources\TeamResource;
+use App\Http\Resources\UserResource;
 
 class TeamController extends Controller
 {
     /**
-     * عرض قائمة بجميع الفرق (Teams).
+     * عرض كل الفرق
      */
     public function index()
     {
-        if (auth()->user()->can('view teams')) {
-            $teams = Team::withCount('users')->get();
-            return view('Dashboard.teams.index', compact('teams'));
-        }
-        abort(403, 'Unauthorized action.');
-    }
-
-    public function show(Team $team)
-    {
-        if (auth()->user()->can('view teams')) {
-            $team->load('users');
-            return view('Dashboard.teams.show', compact('team'));
-        }
-        abort(403, 'Unauthorized action.');
-    }
-    /**
-     * عرض نموذج إنشاء فريق جديد.
-     */
-    public function create()
-    {
-        if (auth()->user()->can('add teams')) {
-            $users = User::role('Agent')->orderBy('name')->get();
-            return view('Dashboard.teams.create', compact('users')); 
-        }
-        abort(403, 'Unauthorized action.');
+        $teams = Team::with(['lead', 'users'])->latest()->get();
+        return TeamResource::collection($teams);
     }
 
     /**
-     * حفظ بيانات الفريق الجديد في قاعدة البيانات.
+     * إنشاء فريق جديد
      */
     public function store(Request $request)
     {
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name',
             'Specialization' => 'nullable|string|max:255',
-            // 💡 إضافة validation لقائد الفريق
-            'user_id' => 'required|exists:users,id', // 'required' لأنه حقل أساسي الآن
+            'user_id' => 'required|exists:users,id',
+            'company_id' => 'nullable|exists:companies,id',
         ]);
 
-        Team::create($validated);
+        $team = Team::create($validated);
 
-        // استخدام مفتاح ترجمة لرسالة النجاح
-        return redirect()->route('teams.index')
-            ->with('success', __('text.created_success'));
+        return new TeamResource($team->load(['lead', 'users']));
     }
 
     /**
-     * عرض واجهة تعديل أعضاء فريق معين.
+     * عرض فريق واحد
      */
-    public function editMembers(Team $team)
+    public function show(Team $team)
     {
-        if (auth()->user()->can('edit teams')) {
-            $users = User::role('Agent')->orderBy('name')->get();
-    
-            // توحيد مسار الـ View
-            return view('Dashboard.teams.edit_members', [
-                'team' => $team,
-                'users' => $users,
-                'currentMembers' => $team->users->pluck('id')->toArray(),
-            ]);
-        }
-        abort(403, 'Unauthorized action.');
+
+        $team->load(['lead', 'users']);
+        return new TeamResource($team);
     }
 
     /**
-     * حفظ التغييرات على أعضاء الفريق.
+     * تحديث بيانات الفريق
+     */
+    public function update(Request $request, Team $team)
+    {
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255|unique:teams,name,' . $team->id,
+            'Specialization' => 'nullable|string|max:255',
+            'user_id' => 'sometimes|required|exists:users,id',
+            'company_id' => 'nullable|exists:companies,id',
+        ]);
+
+        $team->update($validated);
+
+        return new TeamResource($team->load(['lead', 'users']));
+    }
+
+    /**
+     * حذف فريق
+     */
+    public function destroy(Team $team)
+    {
+        $team->delete();
+
+        return response()->json(['message' => 'Team deleted successfully']);
+    }
+
+    /**
+     * عرض أعضاء الفريق
+     */
+    public function members(Team $team)
+    {
+        $members = $team->users()->orderBy('name')->get();
+        return UserResource::collection($members);
+    }
+
+    /**
+     * تحديث أعضاء الفريق
      */
     public function updateMembers(Request $request, Team $team)
     {
@@ -89,8 +96,9 @@ class TeamController extends Controller
 
         $team->users()->sync($validated['members'] ?? []);
 
-        // استخدام مفتاح ترجمة لرسالة النجاح
-        return redirect()->route('teams.index')
-            ->with('success', __('text.members_updated_success'));
+        return response()->json([
+            'message' => 'Team members updated successfully',
+            'team' => new TeamResource($team->load('users'))
+        ]);
     }
 }

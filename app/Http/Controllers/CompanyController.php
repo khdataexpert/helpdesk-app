@@ -71,4 +71,8 @@ class CompanyController extends Controller
 
         return response()->json(['message' => 'Company deleted']);
     }
+    public function aa()
+    {
+        return "Hello from CompanyController aa method";
+    }
 }

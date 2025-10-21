@@ -17,7 +17,10 @@ class TeamResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'members' => UserResource::collection($this->whenLoaded('members')),
+            'Specialization' => $this->Specialization,
+            'lead' => new UserResource($this->whenLoaded('lead')),
+            'members' => UserResource::collection($this->whenLoaded('users')),
+            'company_id' => $this->company_id,
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
         ];
     }

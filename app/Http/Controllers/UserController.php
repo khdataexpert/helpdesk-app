@@ -46,6 +46,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
@@ -53,11 +54,11 @@ class UserController extends Controller
         ]);
 
         $user = User::create([
+            'company_id' => $validated['company_id'],
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
-//-------------------------------aa---------------------------
         $role = Role::findByName($validated['role'], 'api');
         $user->assignRole($role);
 
@@ -74,6 +75,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
+            'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
@@ -81,6 +83,7 @@ class UserController extends Controller
         ]);
 
         $user->update([
+            'company_id' => $validated['company_id'],
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $request->password ? Hash::make($request->password) : $user->password,
