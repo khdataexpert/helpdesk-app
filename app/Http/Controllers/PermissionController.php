@@ -10,10 +10,19 @@ class PermissionController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->can('manage permissions')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $permissions = Permission::paginate(15);
 
-        return PermissionResource::collection($permissions)
-            ->additional(['status' => 200]);
+        return [
+            'permissions' => PermissionResource::collection($permissions),
+            'status' => 200,
+            'message' => __('text.permissions_list_retrieved_successfully'),
+        ];
     }
 
     /**
@@ -21,9 +30,18 @@ class PermissionController extends Controller
      */
     public function show($id)
     {
+        if (!auth()->user()->can('manage permissions')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $permission = Permission::findOrFail($id);
-        return (new PermissionResource($permission))
-            ->additional(['status' => 200]);
+        return [
+            'permission' => new PermissionResource($permission),
+            'status' => 200,
+            'message' => __('text.permission_details_retrieved_successfully'),
+        ];
     }
 
     /**
@@ -31,9 +49,15 @@ class PermissionController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->can('manage permissions')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $validated = $request->validate([
             'name' => 'required|string|unique:permissions,name',
-            'guard_name' => 'nullable|string|default:api',
+            'guard_name' => 'nullable|string',
         ]);
 
         $permission = Permission::create([
@@ -41,13 +65,11 @@ class PermissionController extends Controller
             'guard_name' => $validated['guard_name'] ?? 'api',
         ]);
 
-        return (new PermissionResource($permission))
-            ->additional([
-                'status' => true,
-                'message' => __('text.permission_created_success'),
-            ])
-            ->response()
-            ->setStatusCode(201);
+        return[
+            'permission' => new PermissionResource($permission),
+            'status' => 201,
+            'message' => __('text.permission_created_success'),
+        ];
     }
 
     /**
@@ -55,6 +77,12 @@ class PermissionController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->can('manage permissions')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $permission = Permission::findOrFail($id);
 
         $validated = $request->validate([
@@ -67,24 +95,11 @@ class PermissionController extends Controller
             'guard_name' => $validated['guard_name'] ?? $permission->guard_name,
         ]);
 
-        return (new PermissionResource($permission))
-            ->additional([
-                'status' => true,
-                'message' => __('text.permission_updated_success'),
-            ]);
+        return [
+            'permission' => new PermissionResource($permission),
+            'status' => 200,
+            'message' => __('text.permission_updated_success'),
+        ];
     }
 
-    /**
-     * حذف صلاحية
-     */
-    public function destroy($id)
-    {
-        $permission = Permission::findOrFail($id);
-        $permission->delete();
-
-        return response()->json([
-            'status' => true,
-            'message' => __('text.permission_deleted_success'),
-        ]);
-    }
 }

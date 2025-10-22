@@ -12,12 +12,26 @@ class CompanyController extends Controller
 {
     public function index()
     {
-        $companies = Company::orderBy('id', 'desc')->paginate(15);
-        return CompanyResource::collection($companies);
+        if (!auth()->user()->can('view companies')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
+        if (!auth()->user()->can('view own companies')) {
+            $companies = Company::where('created_by', auth()->id())->orderBy('id', 'desc')->paginate(15);
+        } else {    
+            $companies = Company::orderBy('id', 'desc')->paginate(15);
+        }
+        return [
+            'status' => 200,
+            'message' => __('text.companies_list_retrieved_successfully'),
+            'companies' => CompanyResource::collection($companies),
+        ];
     }
 
     public function store(Request $request)
     {
+        if (!auth()->user()->can('add companies')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'nullable|string|max:1000',
@@ -32,16 +46,30 @@ class CompanyController extends Controller
 
         $company = Company::create($data);
 
-        return new CompanyResource($company);
+        return [
+            'status' => 201,
+            'message' => __('text.company_created_success'),
+            'company' => new CompanyResource($company),
+        ];
     }
 
     public function show(Company $company)
     {
-        return new CompanyResource($company);
+        if (!auth()->user()->can('view companies')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
+        return [
+            'status' => 200,
+            'message' => __('text.company_details_retrieved_successfully'),
+            'company' => new CompanyResource($company),
+        ];
     }
 
     public function update(Request $request, Company $company)
     {
+        if (!auth()->user()->can('edit companies')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'address' => 'nullable|string|max:1000',
@@ -59,7 +87,11 @@ class CompanyController extends Controller
 
         $company->update($data);
 
-        return new CompanyResource($company);
+        return [
+            'status' => 200,
+            'message' => __('text.company_updated_success'),
+            'company' => new CompanyResource($company),
+        ];
     }
 
     public function destroy(Company $company)
@@ -69,10 +101,10 @@ class CompanyController extends Controller
         }
         $company->delete();
 
-        return response()->json(['message' => 'Company deleted']);
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.company_deleted_success'),
+        ]);
     }
-    public function aa()
-    {
-        return "Hello from CompanyController aa method";
-    }
+
 }

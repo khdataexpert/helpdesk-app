@@ -49,6 +49,11 @@ class PermissionSeeder extends Seeder
             'add Roles',
             'edit Roles',
             'delete Roles',
+            'view companies',
+            'view own companies',
+            'add companies',
+            'edit companies',
+            'delete companies',
         ];
 
 

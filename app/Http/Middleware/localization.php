@@ -15,10 +15,10 @@ class localization
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        // جرب قراءة اللغة من Header أو من query string
-        $locale = $request->header('Accept-Language', $request->get('lang', config('app.locale')));
+        // الأولوية: query -> header -> default
+        $locale = $request->get('lang', $request->header('Accept-Language', config('app.locale')));
 
         if (!in_array($locale, ['en', 'ar'])) {
             $locale = config('app.locale');

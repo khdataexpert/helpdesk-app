@@ -55,7 +55,7 @@ class authcontroller extends Controller
         }
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'message' => __('text.logout_success'),
         ]);
     }
@@ -68,8 +68,9 @@ class authcontroller extends Controller
         $user = Auth::user();
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'user' => new UserResource($user->load('company', 'roles')),
+            'message' => __('text.welcome_title') . ', ' . $user->name,
         ]);
     }
 }

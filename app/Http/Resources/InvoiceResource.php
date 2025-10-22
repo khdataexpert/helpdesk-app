@@ -17,11 +17,14 @@ class InvoiceResource extends JsonResource
         return [
             'id' => $this->id,
             'invoice_number' => $this->invoice_number,
-            'amount' => $this->amount,
+            'invoice_date' => $this->invoice_date?->format('Y-m-d'),
+            'total' => $this->total,
             'status' => $this->status,
-            'due_date' => $this->due_date?->format('Y-m-d'),
+            'attachment' => $this->attachment ? asset('storage/' . $this->attachment) : null,
             'client' => new UserResource($this->whenLoaded('client')),
+            'project' => new ProjectResource($this->whenLoaded('project')),
             'company' => new CompanyResource($this->whenLoaded('company')),
+            'creator' => new UserResource($this->whenLoaded('creator')),
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
         ];
     }

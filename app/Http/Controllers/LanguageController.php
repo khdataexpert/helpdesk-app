@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\App;
 
 class LanguageController extends Controller
 {
-    public function change(Request $request, $locale)
+    public function change($locale)
     {
         if (!in_array($locale, ['en', 'ar'])) {
             abort(400);
@@ -19,7 +19,7 @@ class LanguageController extends Controller
         App::setLocale($locale);
 
         return response()->json([
-            'message' => 'Language changed',
+            'message' => __('text.Language changed successfully'),
             'locale' => $locale,
             'sample_text' => __('text.dashboard_title'),
         ]);

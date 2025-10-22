@@ -18,10 +18,16 @@ class UserController extends Controller
      */
     public function index()
     {
+        if (!auth()->user()->can('view users')) {
+            return response()->json([
+                'status' => 403,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $users = User::with(['roles', 'permissions', 'company'])->paginate(10);
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'message' => __('text.users_management'),
             'data' => UserResource::collection($users),
         ]);
@@ -32,11 +38,18 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        if (!auth()->user()->can('view users')) {
+            return response()->json([
+                'status' => 403,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $user->load(['roles', 'permissions', 'company']);
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'data' => new UserResource($user),
+            'message' => __('text.user_details'),
         ]);
     }
 
@@ -45,6 +58,12 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->can('create users')) {
+            return response()->json([
+                'status' => 403,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $validated = $request->validate([
             'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
@@ -63,10 +82,10 @@ class UserController extends Controller
         $user->assignRole($role);
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'message' => __('text.user_created_success'),
             'data' => new UserResource($user),
-        ], 201);
+        ]);
     }
 
     /**
@@ -74,6 +93,12 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        if (!auth()->user()->can('edit users')) {
+            return response()->json([
+                'status' => 403,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         $validated = $request->validate([
             'company_id' => 'required|exists:companies,id',
             'name' => 'required|string|max:255',
@@ -93,7 +118,7 @@ class UserController extends Controller
         $user->syncRoles($role);
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'message' => __('text.user_updated_success'),
             'data' => new UserResource($user),
         ]);
@@ -104,6 +129,12 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        if (!auth()->user()->can('delete users')) {
+            return response()->json([
+                'status' => 403,
+                'message' => __('text.permission_denied'),
+            ], 403);
+        }
         if (auth()->id() === $user->id) {
             return response()->json([
                 'status' => false,
@@ -120,21 +151,6 @@ class UserController extends Controller
     }
 
     /**
-     * عرض صلاحيات المستخدم (GET /api/users/{id}/permissions)
-     */
-    public function permissions($id)
-    {
-        $user = User::findOrFail($id);
-        $permissions = Permission::all();
-
-        return response()->json([
-            'status' => true,
-            'user' => new UserResource($user),
-            'permissions' => $permissions->pluck('name'),
-        ]);
-    }
-
-    /**
      * تحديث صلاحيات المستخدم (PUT /api/users/{id}/permissions)
      */
     public function updatePermissions(Request $request, $id)
@@ -143,7 +159,7 @@ class UserController extends Controller
         $user->syncPermissions($request->input('permissions', []));
 
         return response()->json([
-            'status' => true,
+            'status' => 200,
             'message' => __('text.permissions_updated_successfully'),
             'data' => new UserResource($user),
         ]);

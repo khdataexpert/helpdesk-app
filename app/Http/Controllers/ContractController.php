@@ -1,53 +1,45 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Contract;
-use App\Models\Project;
 use App\Models\User;
+use App\Models\Project;
+use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Resources\ContractResource;
 
 class ContractController extends Controller
 {
-   public function index()
+  /**
+     * عرض كل العقود
+     */
+    public function index()
     {
-        $query = Contract::with(['Client','project','creator'])->latest();
-
         $user = auth()->user();
+
+        $query = Contract::with(['client', 'project', 'creator', 'company'])->latest();
+
+        // لو المستخدم عميل، يعرض عقوده فقط
         if ($user && $user->hasRole('Client')) {
             $query->where('client_id', $user->id);
         }
 
         $contracts = $query->paginate(15);
-        return view('Dashboard.contracts.index', compact('contracts'));
-    }
-    public function show(Contract $contract)
-    {
-        $user = auth()->user();
-        if ($user && $user->can('view own contracts') && $user->can('view contracts')) {
-            return view('Dashboard.contracts.show', compact('contract'));
-        }
-        abort(403);
+
+        return ContractResource::collection($contracts);
     }
 
-    public function create()
-    {
-        if (!auth()->user() || auth()->user()->hasRole('client')) {
-            abort(403);
-        }
-        $clients = User::role('Client')->orderBy('name')->get();
-        $projects = Project::all();
-        return view('Dashboard.contracts.create', compact('clients','projects'));
-    }
-
+    /**
+     * إنشاء عقد جديد
+     */
     public function store(Request $request)
     {
-
         $validated = $request->validate([
             'contract_number' => 'required|string|unique:contracts,contract_number',
             'notes' => 'nullable|string',
             'client_id' => 'required|exists:users,id',
             'project_id' => 'nullable|exists:projects,id',
+            'company_id' => 'nullable|exists:companies,id',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'status' => 'required|in:active,pending,expired,cancelled',
@@ -57,32 +49,40 @@ class ContractController extends Controller
         $validated['created_by'] = auth()->id();
 
         if ($request->hasFile('attachment')) {
-            $validated['attachment'] = $request->file('attachment')->store('contracts','public');
+            $validated['attachment'] = $request->file('attachment')->store('contracts', 'public');
         }
 
-        Contract::create($validated);
+        $contract = Contract::create($validated);
 
-        return redirect()->route('contracts.index')->with('success', __('text.contract_created_success'));
+        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
     }
 
-    public function edit(Contract $contract)
+    /**
+     * عرض عقد محدد
+     */
+    public function show(Contract $contract)
     {
-        if (!auth()->user() || auth()->user()->hasRole('Client')) {
-            abort(403);
+        $user = auth()->user();
+
+        // لو المستخدم عميل، ما يشوفش غير عقوده فقط
+        if ($user && $user->hasRole('Client') && $contract->client_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-        $clients = User::role('Client')->orderBy('name')->get();
-        $projects = Project::all();
-        return view('Dashboard.contracts.edit', compact('contract','clients','projects'));
+
+        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
     }
 
+    /**
+     * تحديث عقد
+     */
     public function update(Request $request, Contract $contract)
     {
-
         $validated = $request->validate([
-            'contract_number' => 'required|string|unique:contracts,contract_number,'.$contract->id,
+            'contract_number' => 'required|string|unique:contracts,contract_number,' . $contract->id,
             'notes' => 'nullable|string',
             'client_id' => 'required|exists:users,id',
             'project_id' => 'nullable|exists:projects,id',
+            'company_id' => 'nullable|exists:companies,id',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'status' => 'required|in:active,pending,expired,cancelled',
@@ -91,28 +91,30 @@ class ContractController extends Controller
 
         if ($request->hasFile('attachment')) {
             // حذف القديم إذا موجود
-            if ($contract->attachment) {
+            if ($contract->attachment && Storage::disk('public')->exists($contract->attachment)) {
                 Storage::disk('public')->delete($contract->attachment);
             }
-            $validated['attachment'] = $request->file('attachment')->store('contracts','public');
+
+            $validated['attachment'] = $request->file('attachment')->store('contracts', 'public');
         }
 
         $contract->update($validated);
 
-        return redirect()->route('contracts.index')->with('success', __('text.contract_updated_success'));
+        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
     }
 
+    /**
+     * حذف عقد
+     */
     public function destroy(Contract $contract)
     {
-
-        if ($contract->attachment) {
+        if ($contract->attachment && Storage::disk('public')->exists($contract->attachment)) {
             Storage::disk('public')->delete($contract->attachment);
         }
 
         $contract->delete();
 
-        return redirect()->route('contracts.index')->with('success', __('text.contract_deleted_success'));
+        return response()->json(['message' => 'Contract deleted successfully']);
     }
-
 
 }

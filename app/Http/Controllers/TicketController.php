@@ -2,81 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ticket;
-use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\Ticket;
+use App\Models\Project;
 use Illuminate\Http\Request;
+use App\Http\Resources\TicketResource;
 
 class TicketController extends Controller
 {
     /**
-     * عرض كل التيكتس
+     * عرض كل التيكتات (Tickets)
      */
     public function index()
     {
         $user = auth()->user();
 
-        // لو المستخدم عنده صلاحية يشوف كل التذاكر
+        // صلاحية عرض جميع التذاكر
         if ($user->can('view tickets')) {
-            $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator'])->get();
-            return view('Dashboard.tickets.index', compact('tickets'));
+            $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator', 'company'])->latest()->get();
         }
-
-        // لو المستخدم يقدر يشوف تذاكر خاصة أو ينشئ تذاكر
-        if ($user->can('view own tickets') || $user->can('add tickets')) {
-
+        // صلاحيات عرض التذاكر الخاصة
+        elseif ($user->can('view own tickets') || $user->can('add tickets')) {
             if ($user->hasRole('Client')) {
-                // العميل يشوف التذاكر اللي هو أنشأها
-                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator'])
+                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator', 'company'])
                     ->where('created_by', $user->id)
+                    ->latest()
                     ->get();
             } elseif ($user->hasRole('Agent')) {
-                // الوكيل يشوف تذاكر فريقه أو اللي اتكلف بيها
                 $teamIds = $user->teams()->pluck('teams.id')->toArray();
 
-                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator'])
+                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator', 'company'])
                     ->where(function ($query) use ($teamIds, $user) {
                         $query->whereIn('team_id', $teamIds)
                             ->orWhere('assigned_to', $user->id);
                     })
+                    ->latest()
                     ->get();
             } elseif ($user->hasRole('Super Admin')) {
-                // السوبر أدمن يشوف كل التذاكر
-                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator'])->get();
+                $tickets = Ticket::with(['project', 'team', 'assignedUser', 'creator', 'company'])->latest()->get();
             } else {
-                $tickets = collect(); // فاضي لو مش في أي رول معروف
+                $tickets = collect();
             }
-
-            return view('Dashboard.tickets.index', compact('tickets'));
+        } else {
+            return response()->json(['message' => __('text.permission_denied')], 403);
         }
 
-        // لو معندوش صلاحية نهائي
-        abort(403, __('text.permission_denied'));
-    }
-
-
-
-    /**
-     * عرض صفحة إنشاء تيكت جديدة
-     */
-    public function create()
-    {
-        if (auth()->user()->can('add tickets')) {
-            $projects = Project::all();
-            $teams = Team::all();
-            $users = User::role('Agent')->get();
-
-            return view('Dashboard.tickets.create', compact('projects', 'teams', 'users'));
-        }
-        abort(403, __('text.permission_denied'));
+        return [
+            "status" => 200,
+            "message" => __('text.tickets_list'),
+            "tickets" => TicketResource::collection($tickets),
+        ];
     }
 
     /**
-     * حفظ التيكت الجديدة
+     * إنشاء تيكت جديدة
      */
     public function store(Request $request)
     {
+        $user = auth()->user();
+
+        if (! $user->can('add tickets')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -85,14 +74,19 @@ class TicketController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'type' => 'required|in:task,bug,feature,improvement',
             'priority' => 'required|in:low,medium,high,urgent',
+            'company_id' => 'nullable|exists:companies,id',
         ]);
 
-        $validated['created_by'] = auth()->id();
+        $validated['created_by'] = $user->id;
         $validated['status'] = 'open';
 
-        Ticket::create($validated);
+        $ticket = Ticket::create($validated);
 
-        return redirect()->route('tickets.index')->with('success', __('text.ticket_created_success'));
+        return [
+            "status" => 201,
+            "message" => __('text.ticket_created_success'),
+            "ticket" => new TicketResource($ticket->load(['project', 'team', 'assignedUser', 'creator', 'company']))
+        ];
     }
 
     /**
@@ -100,34 +94,37 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket)
     {
-        if (auth()->user()->can('view tickets') || (auth()->user()->can('view own tickets') && $ticket->created_by === auth()->id())) {
+        $user = auth()->user();
 
-            return view('Dashboard.tickets.show', compact('ticket'));
+        $canView = $user->can('view tickets') ||
+            ($user->can('view own tickets') &&
+                ($ticket->created_by === $user->id ||
+                    $ticket->assigned_to === $user->id ||
+                    $user->teams->contains('id', $ticket->team_id))
+            );
+
+        if (! $canView) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
         }
-        abort(403, __('text.permission_denied'));
+
+        $ticket->load(['project', 'team', 'assignedUser', 'creator', 'company']);
+        return [
+            'ticket' => new TicketResource($ticket),
+            'status' => 200,
+            'message' => __('text.ticket_details'),
+        ];
     }
 
     /**
-     * تعديل تيكت
-     */
-    public function edit(Ticket $ticket)
-    {
-        if (auth()->user()->can('edit tickets')) {
-
-            $projects = Project::all();
-            $teams = Team::all();
-            $users = User::all();
-
-            return view('Dashboard.tickets.edit', compact('ticket', 'projects', 'teams', 'users'));
-        }
-        abort(403, __('text.permission_denied'));
-    }
-
-    /**
-     * تحديث التيكت
+     * تحديث تيكت
      */
     public function update(Request $request, Ticket $ticket)
     {
+        $user = auth()->user();
+
+        if (! $user->can('edit tickets')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -138,30 +135,55 @@ class TicketController extends Controller
             'type' => 'required|in:task,bug,feature,improvement',
             'status' => 'required|in:open,in_progress,resolved,closed',
             'priority' => 'required|in:low,medium,high,urgent',
+            'company_id' => 'nullable|exists:companies,id',
         ]);
 
         $ticket->update($validated);
 
-        return redirect()->route('tickets.index')->with('success', __('text.ticket_updated_success'));
+        return [
+            'status' => 200,
+            'message' => __('text.ticket_details'),
+            'ticket' => new TicketResource($ticket->load(['project', 'team', 'assignedUser', 'creator', 'company']))
+        ];
     }
 
+    /**
+     * تعيين التيكت للمستخدم الحالي (Agent)
+     */
     public function assignToMe(Ticket $ticket)
     {
-        if (auth()->user()->hasRole('Agent')) {
-            $ticket->assigned_to = auth()->id();
-            $ticket->save();
+        $user = auth()->user();
 
-            return redirect()->route('tickets.index')->with('success', __('text.ticket_assigned_success'));
+        if (! $user->hasRole('Agent')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
         }
-        abort(403, __('text.permission_denied'));
+
+        $ticket->assigned_to = $user->id;
+        $ticket->save();
+
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.ticket_assigned_success'),
+            'ticket' => new TicketResource($ticket->load(['project', 'team', 'assignedUser', 'creator', 'company']))
+        ]);
     }
+
     /**
      * حذف تيكت
      */
     public function destroy(Ticket $ticket)
     {
+        $user = auth()->user();
+
+        if (! $user->can('delete tickets')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
 
         $ticket->delete();
-        return redirect()->route('tickets.index')->with('success', __('text.ticket_deleted_success'));
+
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.ticket_deleted_success')
+        ]);
     }
 }

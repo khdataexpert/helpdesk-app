@@ -15,8 +15,15 @@ class TeamController extends Controller
      */
     public function index()
     {
+        if (!auth()->user()->can('view teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $teams = Team::with(['lead', 'users'])->latest()->get();
-        return TeamResource::collection($teams);
+        return [
+            'status' => 200,
+            'teams' => TeamResource::collection($teams),
+            'message' => __('text.teams_list')
+        ];
     }
 
     /**
@@ -24,7 +31,9 @@ class TeamController extends Controller
      */
     public function store(Request $request)
     {
-
+        if (!auth()->user()->can('add teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:teams,name',
             'Specialization' => 'nullable|string|max:255',
@@ -34,7 +43,11 @@ class TeamController extends Controller
 
         $team = Team::create($validated);
 
-        return new TeamResource($team->load(['lead', 'users']));
+        return [
+            'status' => 201,
+            'message' => __('text.team_created_success'),
+            'team' => new TeamResource($team->load(['lead', 'users']))
+        ];
     }
 
     /**
@@ -42,9 +55,15 @@ class TeamController extends Controller
      */
     public function show(Team $team)
     {
-
+        if (!auth()->user()->can('view teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $team->load(['lead', 'users']);
-        return new TeamResource($team);
+        return [
+            'status' => 200,
+            'team' => new TeamResource($team),
+            'message' => __('text.team_details')
+        ];
     }
 
     /**
@@ -52,7 +71,9 @@ class TeamController extends Controller
      */
     public function update(Request $request, Team $team)
     {
-
+        if (!auth()->user()->can('edit teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255|unique:teams,name,' . $team->id,
             'Specialization' => 'nullable|string|max:255',
@@ -62,7 +83,11 @@ class TeamController extends Controller
 
         $team->update($validated);
 
-        return new TeamResource($team->load(['lead', 'users']));
+        return [
+            'status' => 200,
+            'team' => new TeamResource($team->load(['lead', 'users'])),
+            'message' => __('text.team_updated_success')
+        ];
     }
 
     /**
@@ -70,23 +95,33 @@ class TeamController extends Controller
      */
     public function destroy(Team $team)
     {
+        if (!auth()->user()->can('delete teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $team->delete();
 
-        return response()->json(['message' => 'Team deleted successfully']);
+        return response()->json([
+            'message' => __('text.team_deleted_success'),
+            'status' => 200
+        ]);
     }
 
-    /**
-     * عرض أعضاء الفريق
-     */
     public function members(Team $team)
     {
-        $members = $team->users()->orderBy('name')->get();
-        return UserResource::collection($members);
+        if (!auth()->user()->can('view teams')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
+
+        $team->load('users');
+
+        return response()->json([
+            'message' => __('text.team_details'),
+            'members' => UserResource::collection($team->users),
+            'status' => 200,
+        ]);
     }
 
-    /**
-     * تحديث أعضاء الفريق
-     */
+
     public function updateMembers(Request $request, Team $team)
     {
         $validated = $request->validate([
@@ -97,8 +132,9 @@ class TeamController extends Controller
         $team->users()->sync($validated['members'] ?? []);
 
         return response()->json([
-            'message' => 'Team members updated successfully',
-            'team' => new TeamResource($team->load('users'))
+            'message' => __('text.team_updated_success'),
+            'team' => new TeamResource($team->load('users')),
+            'status' => 200,
         ]);
     }
 }
