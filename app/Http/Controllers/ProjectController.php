@@ -41,7 +41,11 @@ class ProjectController extends Controller
             return response()->json(['message' => __('text.permission_denied')], 403);
         }
 
-        return ProjectResource::collection($projects);
+        return [
+            'status' => 200,
+            'message' => __('text.projects_list_retrieved_successfully'),
+            'projects' => ProjectResource::collection($projects)
+        ];
     }
 
     /**
@@ -67,7 +71,11 @@ class ProjectController extends Controller
 
         $project = Project::create($validated);
 
-        return new ProjectResource($project->load(['client', 'team', 'company']));
+        return [
+            'status' => 201,
+            'message' => __('text.project_created_success'),
+            'project' => new ProjectResource($project->load(['client', 'team', 'company']))
+        ];
     }
 
     /**
@@ -89,7 +97,11 @@ class ProjectController extends Controller
         }
 
         $project->load(['client', 'team', 'company', 'tickets.assignedUser']);
-        return new ProjectResource($project);
+        return [
+            'status' => 200,
+            'message' => __('text.project_details_retrieved_successfully'),
+            'project' => new ProjectResource($project)
+        ];
     }
 
     /**
@@ -115,7 +127,11 @@ class ProjectController extends Controller
 
         $project->update($validated);
 
-        return new ProjectResource($project->load(['client', 'team', 'company']));
+        return [
+            'status' => 200,
+            'message' => __('text.project_updated_success'),
+            'project' => new ProjectResource($project)
+        ];
     }
 
     /**
@@ -133,6 +149,7 @@ class ProjectController extends Controller
         $project->save();
 
         return response()->json([
+            'status' => 200,
             'message' => __('text.agent_assigned_success'),
             'project' => new ProjectResource($project->load(['client', 'team', 'company']))
         ]);
@@ -151,6 +168,9 @@ class ProjectController extends Controller
 
         $project->delete();
 
-        return response()->json(['message' => __('text.project_deleted_success')]);
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.project_deleted_success')
+        ]);
     }
 }

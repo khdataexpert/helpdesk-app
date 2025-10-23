@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -10,30 +11,42 @@ use App\Http\Resources\ContractResource;
 
 class ContractController extends Controller
 {
-  /**
+    /**
      * عرض كل العقود
      */
     public function index()
     {
         $user = auth()->user();
 
-        $query = Contract::with(['client', 'project', 'creator', 'company'])->latest();
-
-        // لو المستخدم عميل، يعرض عقوده فقط
-        if ($user && $user->hasRole('Client')) {
-            $query->where('client_id', $user->id);
+        if ($user->hasRole('Client')) {
+            $contracts = Contract::with(['client', 'project', 'creator', 'company'])
+                ->where('client_id', $user->id)
+                ->latest()
+                ->paginate(15);
+        } elseif ($user->can('view contracts')) {
+            $contracts = Contract::with(['client', 'project', 'creator', 'company'])
+                ->latest()
+                ->paginate(15);
+        } else {
+            return response()->json(['message' => __('text.permission_denied')], 403);
         }
 
-        $contracts = $query->paginate(15);
-
-        return ContractResource::collection($contracts);
+        return [
+            'status' => 200,
+            'message' => __('text.fetch_successful'),
+            'data' => ContractResource::collection($contracts),
+        ];
     }
+
 
     /**
      * إنشاء عقد جديد
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->can('add contracts')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $validated = $request->validate([
             'contract_number' => 'required|string|unique:contracts,contract_number',
             'notes' => 'nullable|string',
@@ -54,7 +67,11 @@ class ContractController extends Controller
 
         $contract = Contract::create($validated);
 
-        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
+        return [
+            'status' => 201,
+            'message' => __('text.create_successful'),
+            'data' => new ContractResource($contract->load(['client', 'project', 'creator', 'company'])),
+        ];
     }
 
     /**
@@ -64,19 +81,41 @@ class ContractController extends Controller
     {
         $user = auth()->user();
 
-        // لو المستخدم عميل، ما يشوفش غير عقوده فقط
-        if ($user && $user->hasRole('Client') && $contract->client_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        // لو المستخدم عنده صلاحية "عرض عقوده الخاصة" ومش عميل
+        if ($user && $user->can('view own contracts') && !$user->hasRole('Client')) {
+            if ($contract->created_by !== $user->id) {
+                return response()->json(['message' => __('text.permission_denied')], 403);
+            }
+        }
+        // لو المستخدم عميل
+        elseif ($user && $user->hasRole('Client')) {
+            if ($contract->client_id !== $user->id) {
+                return response()->json(['message' => __('text.permission_denied')], 403);
+            }
+        }
+        // لو المستخدم ماعندوش صلاحية عرض كل العقود
+        elseif (!$user->can('view contracts')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
         }
 
-        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
+        return [
+            'status' => 200,
+            'message' => __('text.fetch_successful'),
+            'data' => new ContractResource(
+                $contract->load(['client', 'project', 'creator', 'company'])
+            ),
+        ];
     }
+
 
     /**
      * تحديث عقد
      */
     public function update(Request $request, Contract $contract)
     {
+        if (!auth()->user()->can('edit contracts')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         $validated = $request->validate([
             'contract_number' => 'required|string|unique:contracts,contract_number,' . $contract->id,
             'notes' => 'nullable|string',
@@ -100,7 +139,11 @@ class ContractController extends Controller
 
         $contract->update($validated);
 
-        return new ContractResource($contract->load(['client', 'project', 'creator', 'company']));
+        return [
+            'status' => 200,
+            'message' => __('text.update_successful'),
+            'data' => new ContractResource($contract->load(['client', 'project', 'creator', 'company'])),
+        ];
     }
 
     /**
@@ -108,13 +151,18 @@ class ContractController extends Controller
      */
     public function destroy(Contract $contract)
     {
+        if (!auth()->user()->can('delete contracts')) {
+            return response()->json(['message' => __('text.permission_denied')], 403);
+        }
         if ($contract->attachment && Storage::disk('public')->exists($contract->attachment)) {
             Storage::disk('public')->delete($contract->attachment);
         }
 
         $contract->delete();
 
-        return response()->json(['message' => 'Contract deleted successfully']);
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.delete_successful'),
+        ]);
     }
-
 }

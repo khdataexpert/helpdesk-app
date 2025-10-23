@@ -132,6 +132,7 @@ class TicketController extends Controller
             'project_id' => 'required|exists:projects,id',
             'team_id' => 'nullable|exists:teams,id',
             'assigned_to' => 'nullable|exists:users,id',
+            'created_by' => 'nullable|exists:users,id',
             'type' => 'required|in:task,bug,feature,improvement',
             'status' => 'required|in:open,in_progress,resolved,closed',
             'priority' => 'required|in:low,medium,high,urgent',
