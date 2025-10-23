@@ -58,7 +58,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        if (!auth()->user()->can('create users')) {
+        if (!auth()->user()->can('add users')) {
             return response()->json([
                 'status' => 403,
                 'message' => __('text.permission_denied'),
