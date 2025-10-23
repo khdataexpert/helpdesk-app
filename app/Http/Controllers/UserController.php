@@ -24,7 +24,7 @@ class UserController extends Controller
                 'message' => __('text.permission_denied'),
             ], 403);
         }
-        $users = User::with(['roles', 'permissions', 'company'])->paginate(10);
+        $users = User::with(['roles', 'permissions', 'company.style'])->paginate(10);
 
         return response()->json([
             'status' => 200,

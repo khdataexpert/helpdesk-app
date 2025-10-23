@@ -6,6 +6,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ContractController;
@@ -13,7 +14,7 @@ use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyStyleController;
 
 // ========== Authentication ==========
 Route::post('/login', [AuthController::class, 'login']);
@@ -56,4 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('roles', RoleController::class);
     //=========== Permissions ==========
     Route::apiResource('permissions', PermissionController::class);
+    //=========== Company Styles ==========
+    Route::get('companies/{companyId}/style', [CompanyStyleController::class, 'show']);
+    Route::post('companies/{companyId}/style', [CompanyStyleController::class, 'storeOrUpdate']);
 });

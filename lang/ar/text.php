@@ -56,5 +56,7 @@ return [
 'fetch_successful' => 'تم الاسترجاع بنجاح',
 'create_successful' => 'تم الإنشاء بنجاح',
 'update_successful' => 'تم التحديث بنجاح',
-'delete_successful' => 'تم الحذف بنجاح'
+'delete_successful' => 'تم الحذف بنجاح',
+'style_fetched_successfully' => 'تم جلب النمط بنجاح',
+'style_saved_successfully' => 'تم حفظ النمط بنجاح',
 ];

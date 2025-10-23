@@ -51,5 +51,7 @@ return [
 'fetch_successful' => 'Fetch successful',
 'create_successful' => 'Create successful',
 'update_successful' => 'Update successful',
-'delete_successful' => 'Delete successful'
+'delete_successful' => 'Delete successful',
+'style_fetched_successfully' => 'Style fetched successfully',
+'style_saved_successfully' => 'Style saved successfully',
 ];

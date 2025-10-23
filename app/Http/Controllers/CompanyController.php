@@ -16,9 +16,9 @@ class CompanyController extends Controller
             return response()->json(['message' => __('text.permission_denied')], 403);
         }
         if (!auth()->user()->can('view own companies')) {
-            $companies = Company::where('created_by', auth()->id())->orderBy('id', 'desc')->paginate(15);
-        } else {    
-            $companies = Company::orderBy('id', 'desc')->paginate(15);
+            $companies = Company::with('style')->where('created_by', auth()->id())->orderBy('id', 'desc')->paginate(15);
+        } else {
+            $companies = Company::with('style')->orderBy('id', 'desc')->paginate(15);
         }
         return [
             'status' => 200,
@@ -45,6 +45,7 @@ class CompanyController extends Controller
         }
 
         $company = Company::create($data);
+        $company->load('style');
 
         return [
             'status' => 201,
@@ -58,6 +59,7 @@ class CompanyController extends Controller
         if (!auth()->user()->can('view companies')) {
             return response()->json(['message' => __('text.permission_denied')], 403);
         }
+        $company->load('style');
         return [
             'status' => 200,
             'message' => __('text.company_details_retrieved_successfully'),
@@ -86,6 +88,7 @@ class CompanyController extends Controller
         }
 
         $company->update($data);
+        $company->load('style');
 
         return [
             'status' => 200,
@@ -106,5 +109,4 @@ class CompanyController extends Controller
             'message' => __('text.company_deleted_success'),
         ]);
     }
-
 }

@@ -21,6 +21,9 @@ class CompanyResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'image' => asset('storage/' . $this->image),
+            'style' => $this->whenLoaded('style', function () {
+                return new CompanyStyleResource($this->style);
+            }),
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
         ];
     }

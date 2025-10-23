@@ -47,7 +47,7 @@ class authcontroller extends Controller
      */
     public function logout(Request $request)
     {
-        $user = $request->user();
+        $user = Auth::user();
 
         if ($user) {
             // حذف الـ token الحالي فقط
@@ -69,7 +69,7 @@ class authcontroller extends Controller
 
         return response()->json([
             'status' => 200,
-            'user' => new UserResource($user->load('company', 'roles')),
+            'user' => new UserResource($user->load('company', 'roles', 'company.style')),
             'message' => __('text.welcome_title') . ', ' . $user->name,
         ]);
     }
