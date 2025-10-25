@@ -43,7 +43,7 @@ class dashboardcontroller extends Controller
             $stats['tickets'] = Ticket::count();
         } elseif ($user->can('view own tickets')) {
             if ($user->hasRole('Client')) {
-                $stats['tickets'] = Ticket::where('client_id', $user->id)->count();
+                $stats['tickets'] = Ticket::where('created_by', $user->id)->count();
             } elseif ($user->hasRole('Agent')) {
                 $stats['tickets'] = Ticket::whereIn('team_id', $teamIds)->count();
             }
