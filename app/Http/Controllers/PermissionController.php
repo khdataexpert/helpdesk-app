@@ -16,7 +16,7 @@ class PermissionController extends Controller
                 'message' => __('text.permission_denied'),
             ], 403);
         }
-        $permissions = Permission::paginate(15);
+        $permissions = Permission::all();
 
         return [
             'permissions' => PermissionResource::collection($permissions),
