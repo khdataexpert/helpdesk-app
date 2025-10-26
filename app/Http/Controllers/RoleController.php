@@ -7,6 +7,7 @@ use Spatie\Permission\Models\Role;
 use App\Http\Resources\RoleResource;
 use Spatie\Permission\Models\Permission;
 use App\Http\Resources\PermissionResource;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
@@ -52,7 +53,7 @@ class RoleController extends Controller
             'guard_name' => 'api',
         ]);
         $role->syncPermissions($validated['permissions']);
-        
+
 
         return [
             'status' => 201,
@@ -77,7 +78,7 @@ class RoleController extends Controller
         $role->update(['name' => $validated['name']]);
         $role->syncPermissions($validated['permissions']);
 
-        return[
+        return [
             'status' => 200,
             'role' => new RoleResource($role->load('permissions')),
             'message' => __('text.update_role_btn'),
@@ -90,8 +91,30 @@ class RoleController extends Controller
             return response()->json(['message' => __('text.permission_denied')], 403);
         }
         $role = Role::findOrFail($id);
-        $role->delete();
 
+        if (! $role) {
+            return response()->json(['message' => 'Role not found'], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            // امسح العلاقات من الجداول الوسيطة
+            DB::table('model_has_roles')->where('role_id', $id)->delete();
+            DB::table('role_has_permissions')->where('role_id', $id)->delete();
+
+            // امسح الرول نفسه
+            DB::table('roles')->where('id', $id)->delete();
+
+            DB::commit();
+
+            return response()->json(['message' => 'Role deleted successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Error deleting role',
+                'error' => $e->getMessage()
+            ], 500);
+        }
         return response()->json([
             'status' => 200,
             'message' => __('text.delete_role_btn'),
