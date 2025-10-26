@@ -16,7 +16,7 @@ class PermissionController extends Controller
                 'message' => __('text.permission_denied'),
             ], 403);
         }
-        $permissions = Permission::all();
+        $permissions = Permission::where('guard_name', 'api')->get();
 
         return [
             'permissions' => PermissionResource::collection($permissions),
