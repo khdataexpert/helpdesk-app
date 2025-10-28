@@ -16,7 +16,7 @@ class CompanyController extends Controller
             return response()->json(['message' => __('text.permission_denied')], 403);
         }
         if (!auth()->user()->can('view own companies')) {
-            $companies = Company::with('style')->where('created_by', auth()->id())->orderBy('id', 'desc')->paginate(15);
+            $companies = Company::with('style')->where('id', auth()->user()->company_id)->orderBy('id', 'desc')->paginate(15);
         } else {
             $companies = Company::with('style')->orderBy('id', 'desc')->paginate(15);
         }
