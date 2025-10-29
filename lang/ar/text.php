@@ -59,4 +59,5 @@ return [
 'delete_successful' => 'تم الحذف بنجاح',
 'style_fetched_successfully' => 'تم جلب النمط بنجاح',
 'style_saved_successfully' => 'تم حفظ النمط بنجاح',
+'agents_list_success' => 'تم استرجاع قائمة الوكلاء بنجاح',
 ];

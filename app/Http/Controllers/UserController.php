@@ -164,17 +164,9 @@ class UserController extends Controller
             'data' => new UserResource($user),
         ]);
     }
- use App\Models\User;
-use Illuminate\Http\Request;
-use App\Http\Resources\UserResource;
 
-/**
- * جلب جميع المستخدمين الذين يملكون دور 'agent' مع إمكانية التصفية حسب 'company_id'.
- *
- * (ملاحظة: تم تجاهل $agentId من المسار لأنه غير مُستخدم للتصفية هنا).
- * * @param  \Illuminate\Http\Request  $request
- * @return \Illuminate\Http\JsonResponse
- */
+
+
 public function ListAgents(Request $request) // تغيير اسم الوظيفة لتعكس هدفها
 {
     

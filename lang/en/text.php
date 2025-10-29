@@ -54,4 +54,5 @@ return [
 'delete_successful' => 'Delete successful',
 'style_fetched_successfully' => 'Style fetched successfully',
 'style_saved_successfully' => 'Style saved successfully',
+'agents_list_success' => 'Agents list retrieved successfully',
 ];
