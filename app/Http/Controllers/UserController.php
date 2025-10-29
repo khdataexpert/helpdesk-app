@@ -164,4 +164,36 @@ class UserController extends Controller
             'data' => new UserResource($user),
         ]);
     }
+ use App\Models\User;
+use Illuminate\Http\Request;
+use App\Http\Resources\UserResource;
+
+/**
+ * جلب جميع المستخدمين الذين يملكون دور 'agent' مع إمكانية التصفية حسب 'company_id'.
+ *
+ * (ملاحظة: تم تجاهل $agentId من المسار لأنه غير مُستخدم للتصفية هنا).
+ * * @param  \Illuminate\Http\Request  $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function ListAgents(Request $request) // تغيير اسم الوظيفة لتعكس هدفها
+{
+    
+    $request->validate([
+        'company_id' => 'sometimes|integer|exists:companies,id',
+    ]);
+
+    $query = User::with(['roles', 'permissions', 'company.style'])
+        ->role('Agent'); 
+
+    if ($request->filled('company_id')) {
+        $query->where('company_id', $request->input('company_id'));
+    }
+    $users = $query->get();
+    return response()->json([
+        'status' => 200,
+        'message' => __('text.agents_list_success'),
+        'data' => UserResource::collection($users),
+    ]);
 }
+}
+
