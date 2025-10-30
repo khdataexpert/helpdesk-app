@@ -18,16 +18,16 @@ class ProjectController extends Controller
         $user = auth()->user();
 
         if ($user->can('view projects')) {
-            $projects = Project::with(['client', 'team', 'company','assignedUser'])->latest()->get();
+            $projects = Project::with(['client', 'team', 'company'])->latest()->get();
         } elseif ($user->can('view own projects') || $user->can('add projects')) {
             if ($user->hasRole('Client')) {
-                $projects = Project::with(['client', 'team', 'company','assignedUser'])
+                $projects = Project::with(['client', 'team', 'company'])
                     ->where('client_id', $user->id)
                     ->latest()
                     ->get();
             } elseif ($user->hasRole('Agent')) {
                 $teamIds = $user->teams()->pluck('teams.id')->toArray();
-                $projects = Project::with(['client', 'team', 'company','assignedUser'])
+                $projects = Project::with(['client', 'team', 'company'])
                     ->where(function ($query) use ($teamIds, $user) {
                         $query->whereIn('team_id', $teamIds)
                             ->orWhere('assigned_to', $user->id);
