@@ -14,7 +14,7 @@ class ProjectResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-       return [
+        return [
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
@@ -23,6 +23,7 @@ class ProjectResource extends JsonResource
             'team' => new TeamResource($this->whenLoaded('team')),
             'company' => new CompanyResource($this->whenLoaded('company')),
             'tickets_count' => $this->whenCounted('tickets'),
+            'assigned_to' =>new UserResource($this->whenLoaded('assignedUser')),
         ];
     }
 }
