@@ -23,7 +23,6 @@ class ProjectResource extends JsonResource
             'team' => new TeamResource($this->whenLoaded('team')),
             'company' => new CompanyResource($this->whenLoaded('company')),
             'tickets_count' => $this->whenCounted('tickets'),
-            'assigned_to' =>new UserResource($this->whenLoaded('assignedUser')),
         ];
     }
 }
