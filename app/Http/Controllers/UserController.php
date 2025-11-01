@@ -123,6 +123,27 @@ class UserController extends Controller
             'data' => new UserResource($user),
         ]);
     }
+    public function updateLogUser(Request $request)
+    {
+        $user = auth()->user();
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $request->password ? Hash::make($request->password) : $user->password,
+        ]);
+
+        return response()->json([
+            'status' => 200,
+            'message' => __('text.user_updated_success'),
+            'data' => new UserResource($user),
+        ]);
+    }
 
     /**
      * حذف المستخدم (DELETE /api/users/{id})
