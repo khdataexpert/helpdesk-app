@@ -21,7 +21,7 @@ class TicketResource extends JsonResource
             'status' => $this->status,
             'priority' => $this->priority,
             'project' => new ProjectResource($this->whenLoaded('project')),
-            'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
+            'assigned_to' => new UserResource($this->whenLoaded('assignedUser')),
             'created_by' => new UserResource($this->whenLoaded('createdBy')),
             'created_at' => $this->created_at?->format('Y-m-d H:i'),
         ];
